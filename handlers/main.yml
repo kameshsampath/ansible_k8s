@@ -1,0 +1,47 @@
+---
+
+- name: reboot nodes
+  shell: systemctl reboot
+  async: 2
+  poll: 0
+  become: yes
+  ignore_errors: true
+
+- name: Daemon Reload
+  command: systemctl daemon-reload
+  become: yes
+  
+- name: Enable docker
+  service:
+    name: docker
+    enabled: yes
+
+- name: Enable and Start docker
+  service:
+    name: docker
+    enabled: yes
+    state: started
+
+- name: Enable and Restart docker
+  service:
+    name: docker
+    enabled: yes
+    state: restarted
+
+- name: Restart kube-proxy
+  service:
+    name: kube-proxy
+    state: restarted
+
+- name: Restart kubelet
+  service:
+    name: kubelet
+    state: restarted
+    
+- name: Disable k8s systemd daemons
+  service:
+    name: "{{item}}"
+    enabled: no
+    state: stopped
+  with_items: "{{k8s_services}}"
+  when: master

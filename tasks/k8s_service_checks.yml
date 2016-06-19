@@ -1,0 +1,20 @@
+---
+- name: kube-proxy Enabled and Started 
+  service:
+    name: kube-proxy
+    enabled: yes
+    state: started
+
+- name: kubelet Enabled and Started 
+  service:
+    name: kubelet
+    enabled: yes
+    state: started
+    
+- name: Disable k8s systemd daemons
+  service:
+    name: "{{item}}"
+    enabled: no
+    state: stopped
+  with_items: "{{k8s_daemons}}"
+  when: master

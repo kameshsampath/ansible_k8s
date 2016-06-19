@@ -1,0 +1,77 @@
+---
+
+##
+# TODO build a etcd module to fix the workaround
+# currently it checks for the changed state of 
+# flannel.config.json in etc/kubernetes directory
+# to reconfigure flannel
+##
+- name: copy flannel config
+  template:
+    src: flannel.config.json.j2
+    dest: /etc/kubernetes/flannel.config.json
+    backup: yes
+  register: flannel_config
+  tags:
+    - k8s
+    - flannel
+
+- name: add flannel config to etcd
+  become: yes
+  shell: /usr/bin/etcdctl set coreos.com/network/config < /etc/kubernetes/flannel.config.json
+  args:
+    executable: /bin/bash
+  notify:
+    - reboot nodes
+  when: master and flannel_config.changed
+  tags:
+    - k8s
+    - flannel
+
+- meta: flush_handlers
+
+- name: wait for servers to be booted
+  become: no
+  local_action: wait_for port=22 host={{ ansible_host | default(inventory_hostname) }} search_regex=OpenSSH delay=10 timeout=90
+
+## Flannel
+- name: configure flannel etcd server
+  become: yes
+  lineinfile:
+    regexp: '(^FLANNEL_ETCD=)(.*)'
+    line: '\1"http://{{k8s_master}}:2379"'
+    backrefs: yes
+    dest: "/etc/sysconfig/flanneld"
+    backup: yes
+  notify:
+    - Restart flanneld
+  tags:
+    - k8s
+    - flannel
+
+- name: configure flannel etcd key
+  become: yes
+  lineinfile:
+    regexp: '(^FLANNEL_ETCD_KEY=)(.*)'
+    line: '\1"/coreos.com/network"'
+    backrefs: yes
+    dest: "/etc/sysconfig/flanneld"
+    backup: yes
+  notify:
+    - Restart flanneld
+  tags:
+    - k8s
+    - flannel
+
+- meta: flush_handlers
+
+- name: ensuring flanneld is enabled and started
+  service:
+    name: flanneld
+    enabled: yes
+    state: started
+  tags:
+    - k8s
+    - flannel
+
+

@@ -1,0 +1,95 @@
+---
+
+- name: set facts for k8s master 
+  set_fact:
+    k8s_system_packages: "{{k8s_packages['master']}}"
+    k8s_master_ip: "{{ansible_host}}"
+    k8s_master: "{{hostname}}"
+  when: master
+  tags: [k8s]
+
+- name: set facts for k8s nodes 
+  set_fact:
+    k8s_system_packages: "{{k8s_packages['node']}}"
+    k8s_master_ip: "{{ hostvars[(groups['k8smaster']|random)]['ansible_host'] }}"
+    k8s_master: "{{ hostvars[(groups['k8smaster']|random)]['hostname'] }}"
+  when: not master
+  tags: [k8s]
+
+- debug: msg="Using K8s master,  IP {{k8s_master_ip}} Hostname {{k8s_master}} "
+
+- name: install required packages
+  package:
+    name: "{{item}}"
+    state: present
+  with_items: "{{k8s_system_packages}}"
+  when: atomic is not defined or not atomic
+  tags: [k8s]
+
+## Configure etcd
+- include: etcd_config.yml
+  when: master
+
+- meta: flush_handlers
+
+## Configure Flannel 
+- include: flannel_config.yml
+
+- meta: flush_handlers
+
+## Configure K8s
+
+- name: configure kubernetes config
+  become: yes
+  lineinfile:
+    regexp: '(^KUBE_MASTER=)(.*)'
+    line: '\1"--master=http://{{k8s_master}}:8080"'
+    backrefs: yes
+    dest: "/etc/kubernetes/config"
+    backup: yes
+  when: master
+  notify:
+    - Restart docker
+    - Restart etcd
+  tags: [k8s]
+
+- name: install kubenetes packages
+  become: yes
+  package:
+    name: "{{item}}"
+  with_items: "{{k8s_system_packages}}"
+  tags: [k8s]
+
+- include: k8s_kubelet_master.yml 
+  when: master
+  notify:
+    - disable k8s systemd daemons
+    - Restart etcd
+
+- meta: flush_handlers
+
+- name: create k8s manifest directory
+  become: yes
+  file:
+    name: "{{k8s_manifest_dir}}"
+    state: directory
+  tags: [k8s]
+
+- name: copy apiserver pod
+  become: yes
+  template:
+    src: apiserver.pod.json.j2
+    dest: "{{k8s_manifest_dir}}/apiserver.pod.json"
+  when: master
+  tags: [k8s]
+
+- name: copy controller-manager and scheduler pods
+  become: yes
+  copy:
+    src: "{{item.value.file}}"
+    dest: "{{k8s_manifest_dir}}/{{item.value.dest}}"
+  with_dict: "{{k8s_manifests}}"
+  when: master
+  tags: [k8s]
+
+- include: k8s_service_checks.yml

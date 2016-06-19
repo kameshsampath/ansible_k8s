@@ -1,0 +1,52 @@
+---
+- name: ensuring etcd is enabled and started
+  service:
+    name: etcd
+    enabled: yes
+    state: started
+  when: master
+  tags:
+    - k8s
+    - etcd
+
+- name: etcd configure listen client urls
+  become: yes
+  lineinfile:
+    regexp: '(^ETCD_LISTEN_CLIENT_URLS=)(.*)'
+    line: '\1"http://0.0.0.0:2379"'
+    backrefs: yes
+    dest: "/etc/etcd/etcd.conf"
+    backup: yes
+  notify:
+    - Restart etcd
+  tags:
+    - k8s
+    - etcd
+
+- name: etcd configure listen peer urls
+  become: yes
+  lineinfile:
+    regexp: '(^#)(ETCD_LISTEN_PEER_URLS=)(.*)'
+    line: '\2\3'
+    backrefs: yes
+    dest: "/etc/etcd/etcd.conf"
+    backup: yes
+  notify:
+    - Restart etcd
+  tags:
+    - k8s
+    - etcd
+
+- name: etcd configure advertise client urls
+  become: yes
+  lineinfile:
+    regexp: '(^ETCD_ADVERTISE_CLIENT_URLS=)(.*)'
+    line: '\1"http://0.0.0.0:2379"'
+    backrefs: yes
+    dest: "/etc/etcd/etcd.conf"
+    backup: yes
+  notify:
+    - Restart etcd
+  tags:
+    - k8s
+    - etcd

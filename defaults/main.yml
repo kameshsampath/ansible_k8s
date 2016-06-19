@@ -1,0 +1,30 @@
+---
+kube_ip: "127.0.0.1"
+
+kube_api_port: "8080"
+
+k8s_manifest_dir: /etc/kubernetes/manifests
+
+k8s_manifests:
+  controller:
+    file: controller-manager.pod.json
+    dest: controller-manager-pod.json
+  scheduler:
+    file: scheduler.pod.json
+    dest: scheduler.pod.json
+
+k8s_packages:
+  master:
+    - kubernetes-master
+    - kubernetes-node
+  node:
+    - kubernetes-node
+
+k8s_daemons:
+  - 'kube-apiserver'
+  - 'kube-controller-manager'
+  - 'kube-scheduler'
+  
+k8s_node_services:
+  - 'kube-proxy'
+  - 'kubelet'
