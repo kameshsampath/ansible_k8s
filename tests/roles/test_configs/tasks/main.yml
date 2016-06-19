@@ -1,0 +1,51 @@
+---
+## etcd
+- name: etcd configure listen client urls
+  lineinfile:
+    regexp: '(^ETCD_LISTEN_CLIENT_URLS=)(.*)'
+    line: '\1"http://0.0.0.0:2379"'
+    backrefs: yes
+    dest: "{{role_path}}/files/etcd.conf"
+    backup: yes
+
+- name: etcd configure listen peer urls
+  lineinfile:
+    regexp: '(^#)(ETCD_LISTEN_PEER_URLS=)(.*)'
+    line: '\2\3'
+    backrefs: yes
+    dest: "{{role_path}}/files/etcd.conf"
+    backup: yes
+
+- name: etcd configure advertise client urls
+  lineinfile:
+    regexp: '(^ETCD_ADVERTISE_CLIENT_URLS=)(.*)'
+    line: '\1"http://0.0.0.0:2379"'
+    backrefs: yes
+    dest: "{{role_path}}/files/etcd.conf"
+    backup: yes
+
+### Kubernetes
+- name: configure kubernetes
+  lineinfile:
+    regexp: '(^KUBE_MASTER=)(.*)'
+    line: '\1"http://{{ansible_ssh_host}}:8080"'
+    backrefs: yes
+    dest: "{{role_path}}/files/config"
+    backup: yes
+
+## Flannel
+- name: configure flannel etcd server
+  lineinfile:
+    regexp: '(^FLANNEL_ETCD=)(.*)'
+    line: '\1"http://0.0.0.0:2379"'
+    backrefs: yes
+    dest: "{{role_path}}/files/flanneld"
+    backup: yes
+
+- name: configure flannel etcd key
+  lineinfile:
+    regexp: '(^FLANNEL_ETCD_KEY=)(.*)'
+    line: '\1"/coreos.com/network"'
+    backrefs: yes
+    dest: "{{role_path}}/files/flanneld"
+    backup: yes
