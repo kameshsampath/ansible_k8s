@@ -1,5 +1,11 @@
 ---
 
+- name: stop and remove iface docker0
+  shell: ifdown docker0 && nmcli connection delete docker0 
+  args:
+    executable: /bin/bash
+  become: yes
+
 - name: reboot nodes
   shell: systemctl reboot
   async: 2

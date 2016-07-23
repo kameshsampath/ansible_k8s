@@ -21,14 +21,21 @@
   shell: /usr/bin/etcdctl set coreos.com/network/config < /etc/kubernetes/flannel.config.json
   args:
     executable: /bin/bash
-  notify:
-    - reboot nodes
   when: master and flannel_config.changed
   tags:
     - k8s
     - flannel
 
-- meta: flush_handlers
+- name: reboot nodes
+  shell: systemctl reboot
+  async: 2
+  poll: 0
+  become: yes
+  ignore_errors: true
+  when: master and flannel_config.changed
+  tags:
+    - k8s
+    - flannel
 
 - name: wait for servers to be booted
   become: no
