@@ -1,0 +1,63 @@
+---
+
+# TODO does kube-proxy needs to be started for kubelt config changes?
+
+- name: configure k8s KUBELET_ADDRESS
+  become: yes
+  lineinfile:
+    regexp: '(^KUBELET_ADDRESS=)(.*)'
+    line: '\1"--address=0.0.0.0"'
+    backrefs: yes
+    dest: "/etc/kubernetes/kubelet"
+    backup: yes
+  notify:
+    - Daemon Reload
+    - Restart kubelet
+    - Restart kube-proxy
+  tags:
+    - k8s
+
+- name: configure k8s KUBELET_HOSTNAME
+  become: yes
+  lineinfile:
+    regexp: '(^KUBELET_HOSTNAME=)(.*)'
+    line: '\1"--hostname-override={{hostname}}"'
+    backrefs: yes
+    dest: "/etc/kubernetes/kubelet"
+    backup: yes
+  notify:
+    - Daemon Reload
+    - Restart kubelet
+    - Restart kube-proxy
+  tags:
+    - k8s
+
+- name: configure k8s KUBELET_ARGS
+  become: yes
+  lineinfile:
+    regexp: '(^KUBELET_ARGS=)(.*)'
+    line: '\1"--register-node=true"'
+    backrefs: yes
+    dest: "/etc/kubernetes/kubelet"
+    backup: yes
+  notify:
+    - Daemon Reload
+    - Restart kubelet
+    - Restart kube-proxy
+  tags:
+    - k8s
+
+- name: configure k8s KUBELET_API_SERVER
+  become: yes
+  lineinfile:
+    regexp: '(^KUBELET_API_SERVER=)(.*)'
+    line: '\1"--api-servers=http://{{k8s_master}}:8080"'
+    backrefs: yes
+    dest: "/etc/kubernetes/kubelet"
+    backup: yes
+  notify:
+    - Daemon Reload
+    - Restart kubelet
+    - Restart kube-proxy
+  tags:
+    - k8s
